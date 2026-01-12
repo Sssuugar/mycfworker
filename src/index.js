@@ -17,18 +17,27 @@ export default {
     // Get GitHub user information
     if (url.pathname.startsWith('/user/')) {
       const username = url.pathname.split('/user/')[1];
+      if (!isValidUsername(username)) {
+        return new Response('Invalid username', { status: 400 });
+      }
       return await getGitHubUser(username, env);
     }
     
     // Get repository information
     if (url.pathname.startsWith('/repo/')) {
       const repoPath = url.pathname.split('/repo/')[1]; // format: owner/repo
+      if (!isValidRepoPath(repoPath)) {
+        return new Response('Invalid repository path. Format: owner/repo', { status: 400 });
+      }
       return await getGitHubRepo(repoPath, env);
     }
     
     // Get user's repositories
     if (url.pathname.startsWith('/repos/')) {
       const username = url.pathname.split('/repos/')[1];
+      if (!isValidUsername(username)) {
+        return new Response('Invalid username', { status: 400 });
+      }
       return await getGitHubUserRepos(username, env);
     }
     
@@ -171,7 +180,7 @@ function getGitHubHeaders(env) {
   
   // Add authorization if GITHUB_TOKEN is available
   if (env.GITHUB_TOKEN) {
-    headers['Authorization'] = `token ${env.GITHUB_TOKEN}`;
+    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
   }
   
   return headers;
@@ -296,4 +305,48 @@ function getHomePage() {
 </body>
 </html>
   `;
+}
+
+/**
+ * Validate GitHub username
+ * GitHub usernames can only contain alphanumeric characters and hyphens
+ * Cannot start or end with a hyphen, and cannot have consecutive hyphens
+ */
+function isValidUsername(username) {
+  if (!username || typeof username !== 'string') {
+    return false;
+  }
+  // GitHub username rules: 1-39 characters, alphanumeric and hyphens, no consecutive hyphens
+  const usernameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+  return usernameRegex.test(username) && !username.includes('--');
+}
+
+/**
+ * Validate GitHub repository path (owner/repo format)
+ */
+function isValidRepoPath(repoPath) {
+  if (!repoPath || typeof repoPath !== 'string') {
+    return false;
+  }
+  const parts = repoPath.split('/');
+  // Must have exactly 2 parts: owner and repo name
+  if (parts.length !== 2) {
+    return false;
+  }
+  const [owner, repo] = parts;
+  // Both owner and repo must be valid
+  return isValidUsername(owner) && isValidRepoName(repo);
+}
+
+/**
+ * Validate GitHub repository name
+ */
+function isValidRepoName(repoName) {
+  if (!repoName || typeof repoName !== 'string') {
+    return false;
+  }
+  // Repository names can contain alphanumeric, hyphens, underscores, and dots
+  // Max length is 100 characters
+  const repoNameRegex = /^[a-zA-Z0-9._-]{1,100}$/;
+  return repoNameRegex.test(repoName);
 }
