@@ -1,0 +1,16 @@
+{
+  "name": "mycfworker",
+  "version": "1.0.0",
+  "description": "A simple Cloudflare Worker connecting to GitHub API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": ["cloudflare", "worker", "github"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

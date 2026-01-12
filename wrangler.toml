@@ -1,0 +1,6 @@
+name = "mycfworker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (set these using wrangler secret put or in Cloudflare dashboard)
+# GITHUB_TOKEN = "your_github_personal_access_token"
