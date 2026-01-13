@@ -24,6 +24,7 @@ export default {
                 return new Response(JSON.stringify(users, null, 2), { headers: apiHeaders });
             }
 
+
             // POST /api/users - Create user (Mock)
             if (path === '/api/users' && method === 'POST') {
                 try {
@@ -35,6 +36,38 @@ export default {
                     }, null, 2), { headers: apiHeaders, status: 201 });
                 } catch (e) {
                     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { headers: apiHeaders, status: 400 });
+                }
+            }
+
+            // POST /api/login - Login with D1
+            if (path === '/api/login' && method === 'POST') {
+                try {
+                    const { username, password } = await request.json();
+
+                    if (!username || !password) {
+                        return new Response(JSON.stringify({ error: 'Missing username or password' }), { headers: apiHeaders, status: 400 });
+                    }
+
+                    // Query D1
+                    const stmt = env.DB.prepare('SELECT * FROM user WHERE username = ? AND password = ?');
+                    const { results } = await stmt.bind(username, password).all();
+
+                    if (results && results.length > 0) {
+                        // In a real app, you would return a token here
+                        const user = results[0];
+                        // Don't return the password
+                        delete user.password;
+
+                        return new Response(JSON.stringify({
+                            status: 'success',
+                            message: 'Login successful',
+                            user: user
+                        }, null, 2), { headers: apiHeaders });
+                    } else {
+                        return new Response(JSON.stringify({ error: 'Invalid credentials' }), { headers: apiHeaders, status: 401 });
+                    }
+                } catch (e) {
+                    return new Response(JSON.stringify({ error: 'Server Error: ' + e.message }), { headers: apiHeaders, status: 500 });
                 }
             }
 
@@ -153,6 +186,18 @@ export default {
         </div>
 
         <div class="card">
+            <h2>🔑 Login</h2>
+            <p>Method: <code>POST</code> Endpoint: <code>/api/login</code></p>
+            <p>Authenticates against D1 'user' table.</p>
+            <div style="margin-top: 1rem;">
+                <input type="text" id="login-username" placeholder="Username" style="padding: 0.5rem; border-radius: 0.25rem; border: none;">
+                <input type="password" id="login-password" placeholder="Password" style="padding: 0.5rem; border-radius: 0.25rem; border: none; margin-left: 0.5rem;">
+            </div>
+            <button class="btn" onclick="testLogin()">Test Login</button>
+            <div id="res-login" class="response-area"><pre></pre></div>
+        </div>
+
+        <div class="card">
             <h2>ℹ️ Server Info</h2>
             <p>Method: <code>GET</code> Endpoint: <code>/api/info</code></p>
             <p>Returns server time and request information.</p>
@@ -200,6 +245,33 @@ export default {
                 resArea.classList.add('active');
             }
             btn.textContent = 'Test POST';
+        }
+
+        async function testLogin() {
+            const btn = event.target;
+            const resArea = btn.nextElementSibling;
+            const pre = resArea.querySelector('pre');
+            const usernameInput = document.getElementById('login-username');
+            const passwordInput = document.getElementById('login-password');
+            
+            btn.textContent = 'Logging in...';
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username: usernameInput.value, 
+                        password: passwordInput.value 
+                    })
+                });
+                const data = await res.json();
+                pre.textContent = JSON.stringify(data, null, 2);
+                resArea.classList.add('active');
+            } catch (err) {
+                pre.textContent = 'Error: ' + err.message;
+                resArea.classList.add('active');
+            }
+            btn.textContent = 'Test Login';
         }
     </script>
 </body>
